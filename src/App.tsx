@@ -121,7 +121,7 @@ export default function App() {
             {' · '}
             <a href="https://vercel.com" target="_blank" rel="noreferrer" className="text-accent hover:underline">Hosted on Vercel</a> 
             {' · '}
-            <a href="https://github.com/serrynaimo/spcx-ipo-model" target="_blank" rel="noreferrer" className="text-accent hover:underline">Website code</a>
+            <a href="https://github.com/serrynaimo/spcx-ipo-dashboard" target="_blank" rel="noreferrer" className="text-accent hover:underline">Website code</a>
           </p>
         </div>
         <div className="ml-auto flex items-center gap-2 text-xs">
