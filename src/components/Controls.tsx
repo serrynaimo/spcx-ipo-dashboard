@@ -29,7 +29,7 @@ export default function Controls(p: Props) {
     <div className="card p-3 flex flex-wrap items-end gap-4">
       <div className="knob min-w-[180px] grow">
         <span className="label flex items-center gap-1.5">Trading days · {p.days} <InfoTip text={TIPS.days} /></span>
-        <input type="range" min={5} max={260} step={1} value={p.days}
+        <input type="range" min={5} max={180} step={1} value={p.days}
           onChange={(e) => p.setDays(Number(e.target.value))} />
       </div>
 
