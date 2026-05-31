@@ -83,7 +83,7 @@ export default function ConfigPanel({ config, setConfig, editable, onApply }: Pr
 
           <div className="flex gap-2">
             <button className="btn btn-accent" onClick={onApply} disabled={!editable}>Apply config →</button>
-            <button className="btn" onClick={() => setConfig(structuredClone(DEFAULT_CONFIG))}>Reset to SpaceX defaults</button>
+            <button className="btn" onClick={() => setConfig(structuredClone(DEFAULT_CONFIG))}>Reset to default assumptions</button>
           </div>
         </div>
       )}
