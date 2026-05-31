@@ -265,7 +265,7 @@ app.get('/api/last-updated', async (_req, res) => {
 })
 
 app.post('/api/series', async (req, res) => {
-  const days = Math.max(1, Math.min(360, Math.round(Number(req.body?.days) || 180))) // model caps recursion at 360
+  const days = Math.max(1, Math.min(180, Math.round(Number(req.body?.days) || 180))) // model caps recursion at 180
   const fromDay = Math.max(0, Math.round(Number(req.body?.fromDay) || 0))
   const config = req.body?.config && MODE === 'remote' ? req.body.config : undefined
   try {
