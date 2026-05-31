@@ -119,7 +119,7 @@ export default function App() {
               </>
             )}
             {' · '}
-            <a href="https://vercel.com">Hosted on Vercel</a> 
+            <a href="https://vercel.com" target="_blank" rel="noreferrer" className="text-accent hover:underline">Hosted on Vercel</a> 
             {' · '}
             <a href="https://github.com/legalese/spcx-ipo-model" target="_blank" rel="noreferrer" className="text-accent hover:underline">Source code</a>
           </p>
