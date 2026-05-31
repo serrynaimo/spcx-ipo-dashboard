@@ -26,6 +26,34 @@ npm run dev               # web on http://localhost:5173, API proxy on :8787
 **http://localhost:5173**. (Or `npm run build && npm start` for a single‑process build
 served from http://localhost:8787.)
 
+## Deploy to Vercel
+
+The `/api/*` endpoints exist in **two** forms that share one proxy lib (`lib/l4-proxy.mjs`):
+
+- **Local dev** → the Express server (`server/index.mjs`), which also has the local `l4` CLI
+  fallback for long horizons.
+- **Vercel** → serverless functions in `api/` (`api/meta.mjs`, `api/series.mjs`,
+  `api/last-updated.mjs`). Vercel serves the static `dist/` and runs these functions, so the
+  same `/api/*` routes work in production.
+
+Vercel auto‑detects the build (`vercel.json` pins `npm run build` → `dist`). Set these in
+**Project → Settings → Environment Variables**:
+
+| Variable | Scope | Value |
+|---|---|---|
+| `L4_API_KEY` | Function (secret) | your Legalese Cloud bearer token |
+| `L4_API_BASE` | Function | `https://api.legalese.cloud/legalese` |
+| `L4_DEPLOYMENT` | Function | `spacex-ipo-model` |
+| `L4_AUTH_SCHEME` | Function | `Bearer` |
+| `L4_FN_MARKET` | Function | `the-SpaceX-SPCX-market-from-day` |
+| `L4_FN_UPDATED` | Function | `the-model-was-last-updated-on` |
+| `VITE_MODEL_CODE_URL` | Build | jl4 viewer link, e.g. `https://jl4.legalese.com/?id=…` |
+
+**Caveat:** Vercel has no `l4` binary, so the deployment is **remote‑only** — there's no local
+fallback. The managed evaluator's per‑call budget therefore applies directly; very long
+horizons can exceed it. To serve the full 180‑day path from a Vercel deploy, raise the
+deployment's evaluation resource limit on Legalese Cloud.
+
 ## How it talks to the model
 
 The browser only ever calls `/api/*`. A small **Express proxy** (`server/index.mjs`) holds
