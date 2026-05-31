@@ -110,7 +110,7 @@ export default function App() {
           </h1>
           <p className="text-sm text-slate-400">
             <a href="https://legalese.com/l4" target="_blank" rel="noreferrer" className="text-accent hover:underline">Modelled in L4 rules-as-code</a>
-            {' — '}
+            {' · '}
             <a href="https://legalese.cloud" target="_blank" rel="noreferrer" className="text-accent hover:underline">Deployed on Legalese Cloud</a>
             {MODEL_CODE_URL && (
               <>
@@ -118,13 +118,17 @@ export default function App() {
                 <a href={MODEL_CODE_URL} target="_blank" rel="noreferrer" className="text-accent hover:underline">view the model L4 code</a>
               </>
             )}
+            {' · '}
+            <a href="https://vercel.com">Hosted on Vercel</a> 
+            {' · '}
+            <a href="https://github.com/legalese/spcx-ipo-model" target="_blank" rel="noreferrer" className="text-accent hover:underline">Source code</a>
           </p>
         </div>
         <div className="ml-auto flex items-center gap-2 text-xs">
           {modelUpdated && <span className="text-slate-500">Last updated {formatModelDate(modelUpdated)}</span>}
         </div>
       </header>
-
+      
       <Controls
         days={days} setDays={setDays}
         channelMode={channelMode} setChannelMode={setChannelMode}
