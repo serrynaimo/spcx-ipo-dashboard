@@ -24,10 +24,10 @@ export const DEFAULT_FLOW_WINDOWS: FlowWindow[] = [
 
 export const DEFAULT_CONFIG: IpoConfig = {
   'offer price': 105.32,
-  valuation: 1750,
+  valuation: 1800,
   raise: 75,
   'float shares': 712,
-  'total shares': 16616,
+  'total shares': 17090,
   'ipo pop coefficient': 3.0,
   'ipo pop cap': 0.45,
   'impact coefficient': 0.9,
