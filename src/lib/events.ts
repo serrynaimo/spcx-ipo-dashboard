@@ -12,7 +12,9 @@ export const EVENTS: MarketEvent[] = [
   { day: 30, label: 'Q2 earnings · 20% lock-up', kind: 'sell' },
   { day: 95, label: 'Q3 earnings · 28% lock-up', kind: 'sell' },
   { day: 125, label: 'S&P 500 inclusion (12 Dec)', kind: 'buy' },
-  { day: 126, label: '180-day full release', kind: 'sell' },
+  // S-1/A (2 Jun 2026): full release deferred to Q2-2027 results + Musk's 366-day
+  // lock — both beyond this 180-day horizon, so no 100% unlock prints here anymore.
+  { day: 126, label: 'Full release deferred → Q2 2027', kind: 'info' },
 ]
 
 const LISTING = new Date(Date.UTC(2026, 5, 12)) // 12 Jun 2026

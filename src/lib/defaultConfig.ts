@@ -10,6 +10,7 @@ export const DEFAULT_FLOW_WINDOWS: FlowWindow[] = [
   { label: 'retail echo chasing index-inclusion headlines', side: 'buy', 'start day': 5, length: 12, 'total notional': 8, bias: 0.8 },
   { label: 'S&P 500 inclusion front-run (~day 125, 12 Dec)', side: 'buy', 'start day': 118, length: 8, 'total notional': 11, bias: 0.72 },
   { label: 'IPO flippers (listing-day churn)', side: 'sell', 'start day': 0, length: 5, 'total notional': 9, bias: 0.65 },
+  { label: 'friends & family allocation (5% of IPO shares, no lock-up) early flipping', side: 'sell', 'start day': 0, length: 10, 'total notional': 3, bias: 0.7 },
   { label: 'baseline profit-taking', side: 'sell', 'start day': 0, length: 130, 'total notional': 14, bias: 0.99 },
   { label: 'conditional 10% lock-up release (+30% for 5/10 days)', side: 'sell', 'start day': 14, length: 12, 'total notional': 4, bias: 0.8 },
   { label: 'lock-up tranche 1: 20% after first earnings (Q2)', side: 'sell', 'start day': 30, length: 10, 'total notional': 9, bias: 0.7 },
@@ -19,7 +20,9 @@ export const DEFAULT_FLOW_WINDOWS: FlowWindow[] = [
   { label: 'lock-up 7% @ 120 calendar days', side: 'sell', 'start day': 86, length: 4, 'total notional': 3, bias: 0.7 },
   { label: 'lock-up 7% @ 135 calendar days', side: 'sell', 'start day': 96, length: 4, 'total notional': 3, bias: 0.7 },
   { label: 'lock-up 28% after Q3 earnings (~late Oct)', side: 'sell', 'start day': 95, length: 12, 'total notional': 12, bias: 0.72 },
-  { label: 'full release: 100% eligible at 180 days (~9 Dec)', side: 'sell', 'start day': 126, length: 14, 'total notional': 14, bias: 0.72 },
+  // S-1/A (2 Jun 2026): the old "100% at 180 days" full release is removed — the final
+  // release for extended-lock-up holders moves to Q2-2027 results and Musk's 366-day lock,
+  // both beyond this model's 180-trading-day horizon. See spacex-ipo-model.l4.
 ]
 
 export const DEFAULT_CONFIG: IpoConfig = {
