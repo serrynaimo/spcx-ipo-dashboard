@@ -30,6 +30,7 @@ const AUTH_SCHEME = env('L4_AUTH_SCHEME', 'Bearer')
 // Route is the leading keyword run; args are the binder names (with MAYBEs).
 const FN_MARKET = env('L4_FN_MARKET', 'the-SpaceX-SPCX-market-from-day')
 const FN_UPDATED = env('L4_FN_UPDATED', 'the-model-was-last-updated-on')
+const FN_CONFIG = env('L4_FN_CONFIG', 'the-default-SpaceX-IPO-config')
 const L4_BIN = env('L4_BIN')
 const L4_FILE = env('L4_FILE')
 
@@ -134,6 +135,110 @@ function normalize(payload) {
   return stringHit
 }
 
+// ---- IPO Config parsing ----------------------------------------------------
+
+// Scalar fields of `IPO Config`, then each nested `Flow Window`, in declaration order.
+const CONFIG_SCALARS = [
+  'offer price', 'valuation', 'raise', 'float shares', 'total shares',
+  'ipo pop coefficient', 'ipo pop cap', 'impact coefficient',
+  'max daily up', 'max daily down', 'base turnover fraction', 'turnover decay',
+]
+const FLOW_FIELDS = ['start day', 'length', 'total notional', 'bias']
+
+// Parse the evaluator's positional `IPO Config OF 135, 1800, …, (LIST `Flow Window` OF …)`
+// string into a plain IpoConfig. Quoted strings are only flow-window labels / sides; every
+// other token is a number, so one string/number tokeniser recovers the structure positionally.
+function parseL4Config(s) {
+  if (typeof s !== 'string') return null
+  // Anchor on the `IPO Config` OF marker and tokenise only what follows it — otherwise
+  // numbers in any diagnostics preamble that merely mentions "IPO Config" get mis-parsed.
+  const marker = s.match(/`?IPO Config`?\s+OF\b/)
+  if (!marker) return null
+  const body = s.slice(marker.index + marker[0].length)
+  const toks = []
+  const re = /"((?:[^"\\]|\\.)*)"|(-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)/g
+  let m
+  while ((m = re.exec(body))) {
+    toks.push(m[1] !== undefined ? { t: 'str', v: m[1] } : { t: 'num', v: Number(m[2]) })
+  }
+  if (toks.length < CONFIG_SCALARS.length) return null
+  const cfg = {}
+  for (let i = 0; i < CONFIG_SCALARS.length; i++) {
+    if (toks[i].t !== 'num') return null
+    cfg[CONFIG_SCALARS[i]] = toks[i].v
+  }
+  const windows = []
+  for (let i = CONFIG_SCALARS.length; i + 2 + FLOW_FIELDS.length <= toks.length; i += 2 + FLOW_FIELDS.length) {
+    const label = toks[i], side = toks[i + 1]
+    if (label.t !== 'str' || side.t !== 'str') break
+    const w = { label: label.v, side: side.v }
+    let ok = true
+    for (let j = 0; j < FLOW_FIELDS.length; j++) {
+      const tok = toks[i + 2 + j]
+      if (tok.t !== 'num') { ok = false; break }
+      w[FLOW_FIELDS[j]] = tok.v
+    }
+    if (!ok) break
+    windows.push(w)
+  }
+  if (!windows.length) return null // a real config always has flow windows; reject false matches
+  cfg['flow windows'] = windows
+  return cfg
+}
+
+// Unwrap a `{ "`RecordName`": {fields} }` wrapper to its inner field object.
+function recordFields(o) {
+  if (!o || typeof o !== 'object' || Array.isArray(o)) return o
+  const keys = Object.keys(o)
+  if (keys.length === 1 && /^`.*`$/.test(keys[0]) && o[keys[0]] && typeof o[keys[0]] === 'object') return o[keys[0]]
+  return o
+}
+
+// Structured form (Legalese Cloud): nested record objects keyed by field name.
+function configFromStructured(payload) {
+  let found = null
+  const walk = (n, depth = 0) => {
+    if (found || depth > 12 || n == null) return
+    if (Array.isArray(n)) { n.forEach((x) => walk(x, depth + 1)); return }
+    if (typeof n === 'object') {
+      const inner = recordFields(n)
+      if (inner && typeof inner === 'object' && !Array.isArray(inner) && 'offer price' in inner && 'flow windows' in inner) {
+        found = inner; return
+      }
+      Object.values(n).forEach((x) => walk(x, depth + 1))
+    }
+  }
+  walk(payload)
+  if (!found) return null
+  const cfg = {}
+  for (const k of CONFIG_SCALARS) cfg[k] = Number(found[k])
+  const fw = Array.isArray(found['flow windows']) ? found['flow windows'] : []
+  cfg['flow windows'] = fw.map((w) => {
+    const f = recordFields(w)
+    return {
+      label: String(f.label), side: String(f.side),
+      'start day': Number(f['start day']), length: Number(f.length),
+      'total notional': Number(f['total notional']), bias: Number(f.bias),
+    }
+  })
+  return cfg
+}
+
+// Remote returns structured JSON; local `l4 run --json` returns the positional string.
+function configFromPayload(payload) {
+  const structured = configFromStructured(payload)
+  if (structured) return structured
+  let hit = null
+  const walk = (node, depth = 0) => {
+    if (hit || depth > 8 || node == null) return
+    if (typeof node === 'string') { const c = parseL4Config(node); if (c) hit = c }
+    else if (Array.isArray(node)) node.forEach((x) => walk(x, depth + 1))
+    else if (typeof node === 'object') Object.values(node).forEach((x) => walk(x, depth + 1))
+  }
+  walk(payload)
+  return hit
+}
+
 // ---- remote mode -----------------------------------------------------------
 
 async function remoteSeries({ days, config, fromDay }) {
@@ -150,6 +255,14 @@ async function remoteSeries({ days, config, fromDay }) {
     headers,
     body: JSON.stringify({ arguments: args }),
   })
+  // 202 = the deployment is still compiling. Surface it so the route returns 202
+  // and the browser keeps polling rather than treating it as a hard failure.
+  if (resp.status === 202) {
+    const err = new Error('compiling')
+    err.status = 202
+    err.compiling = true
+    throw err
+  }
   const text = await resp.text()
   let json
   try {
@@ -240,6 +353,43 @@ async function remoteDate() {
   return typeof v === 'string' ? v : null
 }
 
+// The model's canonical default IPO config, via `the default SpaceX IPO config`.
+async function remoteDefaultConfig() {
+  const url = `${API_BASE}/${DEPLOYMENT}/fn/${FN_CONFIG}/evaluation`
+  const headers = { 'Content-Type': 'application/json', Accept: 'application/json' }
+  if (API_KEY) headers.Authorization = AUTH_SCHEME ? `${AUTH_SCHEME} ${API_KEY}` : API_KEY
+  const r = await fetch(url, { method: 'POST', headers, body: JSON.stringify({ arguments: {} }) })
+  if (r.status === 202) {
+    const err = new Error('compiling'); err.status = 202; err.compiling = true; throw err
+  }
+  const text = await r.text()
+  let json
+  try { json = JSON.parse(text) } catch { json = text }
+  if (!r.ok) {
+    const err = new Error(`L4 API ${r.status}: ${String(text).slice(0, 400)}`); err.status = r.status; throw err
+  }
+  const cfg = configFromPayload(json)
+  if (!cfg) { const err = new Error('Could not locate an IPO Config in the API response.'); err.raw = json; throw err }
+  return cfg
+}
+
+// Local-mode default config: evaluate the export with the local l4 CLI.
+async function localDefaultConfig() {
+  if (!localAvailable) return null
+  const src = await readFile(L4_FILE, 'utf8')
+  const dir = await mkdtemp(join(tmpdir(), 'spcx-'))
+  const tmp = join(dir, 'model.l4')
+  try {
+    await writeFile(tmp, `${src}\n#EVAL \`the default SpaceX IPO config\`\n`)
+    const out = await runL4(tmp)
+    let json
+    try { json = JSON.parse(out) } catch { json = out }
+    return configFromPayload(json)
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+}
+
 async function localDate() {
   if (!localAvailable) return null
   const src = await readFile(L4_FILE, 'utf8')
@@ -261,6 +411,20 @@ app.get('/api/last-updated', async (_req, res) => {
     res.json({ date })
   } catch {
     res.json({ date: null })
+  }
+})
+
+// The model's canonical default IPO config. Returns 202 while the deployment is
+// still compiling so the browser keeps polling until it's ready.
+app.get('/api/default-config', async (_req, res) => {
+  try {
+    const config = MODE === 'remote' ? await remoteDefaultConfig() : await localDefaultConfig()
+    if (!config) return res.status(502).json({ error: 'no config', config: null })
+    res.json({ config })
+  } catch (e) {
+    if (e.status === 202) return res.status(202).json({ compiling: true, config: null })
+    console.error('[/api/default-config]', e.message)
+    res.status(e.status || 502).json({ error: e.message, config: null })
   }
 })
 
@@ -288,6 +452,7 @@ app.post('/api/series', async (req, res) => {
       throw e
     }
   } catch (e) {
+    if (e.status === 202) return res.status(202).json({ compiling: true, error: 'compiling' })
     console.error('[/api/series]', e.message)
     res.status(e.status || 502).json({ error: e.message, raw: e.raw ?? null })
   }

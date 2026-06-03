@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { fetchLastUpdated, fetchMeta, fetchSeries } from './api'
+import { fetchDefaultConfig, fetchLastUpdated, fetchMeta, fetchSeries } from './api'
 import type { DailyMarket, IpoConfig, Meta } from './types'
-import { DEFAULT_CONFIG } from './lib/defaultConfig'
 import { buildChartRows, summarize, type ChannelMode } from './lib/stats'
 import Controls from './components/Controls'
 import ConfigPanel from './components/ConfigPanel'
@@ -30,7 +29,12 @@ export default function App() {
   const [modelUpdated, setModelUpdated] = useState<string | null>(null)
 
   const [days, setDays] = useState(180)
-  const [config, setConfig] = useState<IpoConfig>(() => structuredClone(DEFAULT_CONFIG))
+  // The IPO config comes solely from the deployed L4 model — there is no hardcoded
+  // default in the app. `config` is null until the model's `the default SpaceX IPO
+  // config` export is fetched on mount; `modelDefault` is the pristine fetched copy
+  // that the config panel's "Reset to default" reverts to.
+  const [modelDefault, setModelDefault] = useState<IpoConfig | null>(null)
+  const [config, setConfig] = useState<IpoConfig | null>(null)
   const [useConfig, setUseConfig] = useState(false)
 
   const [channelMode, setChannelMode] = useState<ChannelMode>('volatility')
@@ -41,6 +45,16 @@ export default function App() {
   // keep latest params in a ref so the loader always reads fresh values
   const paramsRef = useRef({ days, config, useConfig })
   paramsRef.current = { days, config, useConfig }
+
+  // Has the user edited the config yet? If so, the async model-default fetch must not
+  // clobber their edits when it lands. Tracked in a ref so the mount effect sees it.
+  const configDirtyRef = useRef(false)
+  const updateConfig = useCallback((c: IpoConfig) => { configDirtyRef.current = true; setConfig(c) }, [])
+  const resetConfig = useCallback(() => {
+    if (!modelDefault) return
+    configDirtyRef.current = false
+    setConfig(structuredClone(modelDefault))
+  }, [modelDefault])
 
   // Single-flight guard: the model eval is expensive (and the deployed service caps
   // concurrency), so never let two /api/series requests run at once. If a load is
@@ -57,7 +71,7 @@ export default function App() {
     setError(null)
     try {
       const { days: d, config: c, useConfig: uc } = paramsRef.current
-      const resp = await fetchSeries(d, uc ? c : undefined)
+      const resp = await fetchSeries(d, uc && c ? c : undefined)
       setPoints(resp.points)
     } catch (e: any) {
       setError(e.message || 'request failed')
@@ -90,6 +104,16 @@ export default function App() {
   // Header metadata only — these are one-time and never re-fire on interaction.
   useEffect(() => { fetchMeta().then(setMeta).catch(() => {}) }, [])
   useEffect(() => { fetchLastUpdated().then(setModelUpdated).catch(() => {}) }, [])
+  // Pull the model's own default config on first load (polling through 202 while the
+  // deployment compiles). It becomes the panel's starting point and "Reset" target;
+  // if the user has already edited, we keep modelDefault current but leave their edits.
+  useEffect(() => {
+    fetchDefaultConfig().then((c) => {
+      if (!c) return
+      setModelDefault(c)
+      if (!configDirtyRef.current) setConfig(structuredClone(c))
+    }).catch(() => {})
+  }, [])
   // Load the model once on first page load; after that it only runs on Refresh / Apply.
   useEffect(() => { runLoad() }, [runLoad])
 
@@ -97,7 +121,7 @@ export default function App() {
     () => buildChartRows(points, channelMode, channelWidth, channelWindow),
     [points, channelMode, channelWidth, channelWindow],
   )
-  const summary = useMemo(() => summarize(points, config['offer price']), [points, config])
+  const summary = useMemo(() => (config ? summarize(points, config['offer price']) : null), [points, config])
 
   const applyConfig = () => { setUseConfig(true); load() }
 
@@ -162,7 +186,7 @@ export default function App() {
           </span>
         </div>
         <div className="h-[360px]">
-          <PriceChannelChart rows={rows} offer={config['offer price']} />
+          <PriceChannelChart rows={rows} offer={config?.['offer price'] ?? 0} />
         </div>
       </section>
 
@@ -177,7 +201,11 @@ export default function App() {
         </section>
       </div>
 
-      <ConfigPanel config={config} setConfig={setConfig} editable={Boolean(meta?.configEditable)} onApply={applyConfig} />
+      {config ? (
+        <ConfigPanel config={config} setConfig={updateConfig} onReset={resetConfig} editable={Boolean(meta?.configEditable)} onApply={applyConfig} />
+      ) : (
+        <div className="card px-4 py-3 text-sm text-slate-400">Loading model assumptions…</div>
+      )}
       {useConfig && (
         <div className="text-xs text-slate-400 px-1 -mt-2">
           Using a custom configuration (sent to the deployed model).{' '}

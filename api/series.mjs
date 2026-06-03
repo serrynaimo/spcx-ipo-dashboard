@@ -22,6 +22,8 @@ export default async function handler(req, res) {
     const result = await remoteSeries({ days, fromDay, config })
     res.status(200).json({ days, mode: 'remote', ...result })
   } catch (e) {
+    // 202 = deployment still compiling; tell the browser to keep polling.
+    if (e.status === 202) { res.status(202).json({ compiling: true, error: 'compiling' }); return }
     // No local fallback on Vercel — surface the cloud error (e.g. resource limit).
     res.status(e.status || 502).json({ error: e.message })
   }

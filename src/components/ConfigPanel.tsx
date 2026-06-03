@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { IpoConfig, FlowWindow } from '../types'
-import { DEFAULT_CONFIG, SCALAR_KNOBS } from '../lib/defaultConfig'
+import { SCALAR_KNOBS } from '../lib/defaultConfig'
 import InfoTip from './InfoTip'
 
 const COL_TIPS = {
@@ -15,11 +15,12 @@ const COL_TIPS = {
 interface Props {
   config: IpoConfig
   setConfig: (c: IpoConfig) => void
+  onReset: () => void
   editable: boolean
   onApply: () => void
 }
 
-export default function ConfigPanel({ config, setConfig, editable, onApply }: Props) {
+export default function ConfigPanel({ config, setConfig, onReset, editable, onApply }: Props) {
   const [open, setOpen] = useState(false)
   const set = (k: keyof IpoConfig, v: number) => setConfig({ ...config, [k]: v })
   const setWin = (i: number, patch: Partial<FlowWindow>) => {
@@ -83,7 +84,7 @@ export default function ConfigPanel({ config, setConfig, editable, onApply }: Pr
 
           <div className="flex gap-2">
             <button className="btn btn-accent" onClick={onApply} disabled={!editable}>Apply config →</button>
-            <button className="btn" onClick={() => setConfig(structuredClone(DEFAULT_CONFIG))}>Reset to default assumptions</button>
+            <button className="btn" onClick={onReset}>Reset to default assumptions</button>
           </div>
         </div>
       )}
