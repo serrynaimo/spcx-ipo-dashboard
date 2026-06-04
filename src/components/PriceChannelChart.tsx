@@ -4,7 +4,7 @@ import {
 } from 'recharts'
 import type { ChartRow } from '../lib/stats'
 import { fmt } from '../lib/stats'
-import { EVENTS } from '../lib/events'
+import type { MarketEvent } from '../lib/events'
 
 const evColor = (k: string) => (k === 'buy' ? '#22c55e' : k === 'sell' ? '#ef4444' : '#94a3b8')
 
@@ -24,7 +24,7 @@ function ChartTooltip({ active, payload }: any) {
   )
 }
 
-export default function PriceChannelChart({ rows, offer }: { rows: ChartRow[]; offer: number }) {
+export default function PriceChannelChart({ rows, offer, events }: { rows: ChartRow[]; offer: number; events: MarketEvent[] }) {
   const maxDay = rows.length ? rows[rows.length - 1].tradingDay : 0
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -56,7 +56,7 @@ export default function PriceChannelChart({ rows, offer }: { rows: ChartRow[]; o
         <ReferenceLine y={offer} stroke="#f59e0b" strokeDasharray="5 4" strokeOpacity={0.7}
           label={{ value: `offer $${offer}`, position: 'insideTopLeft', fill: '#f59e0b', fontSize: 10 }} />
 
-        {EVENTS.filter((e) => e.day <= maxDay).map((e) => (
+        {events.filter((e) => e.day <= maxDay).map((e) => (
           <ReferenceLine key={e.day} x={e.day} stroke={evColor(e.kind)} strokeOpacity={0.5} strokeDasharray="2 4"
             label={{ value: e.label, angle: -90, position: 'insideTop', fill: evColor(e.kind), fontSize: 9, offset: 8 }} />
         ))}

@@ -4,7 +4,7 @@ import {
 } from 'recharts'
 import type { ChartRow } from '../lib/stats'
 import { fmt } from '../lib/stats'
-import { EVENTS } from '../lib/events'
+import type { MarketEvent } from '../lib/events'
 
 function TT({ active, payload }: any) {
   if (!active || !payload?.length) return null
@@ -20,7 +20,7 @@ function TT({ active, payload }: any) {
 }
 
 // Diverging order-flow: buy above zero, sell below zero, net as a line.
-export default function PressureChart({ rows }: { rows: ChartRow[] }) {
+export default function PressureChart({ rows, events }: { rows: ChartRow[]; events: MarketEvent[] }) {
   const maxDay = rows.length ? rows[rows.length - 1].tradingDay : 0
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -34,7 +34,7 @@ export default function PressureChart({ rows }: { rows: ChartRow[] }) {
         <Bar dataKey="buyPressure" stackId="p" fill="#22c55e" fillOpacity={0.75} isAnimationActive={false} />
         <Bar dataKey="sellNeg" stackId="p" fill="#ef4444" fillOpacity={0.75} isAnimationActive={false} />
         <Line dataKey="netPressure" stroke="#e5ecff" dot={false} strokeWidth={1.5} isAnimationActive={false} />
-        {EVENTS.filter((e) => e.day <= maxDay).map((e) => (
+        {events.filter((e) => e.day <= maxDay).map((e) => (
           <ReferenceLine key={e.day} x={e.day} stroke="#475569" strokeOpacity={0.5} strokeDasharray="2 4" />
         ))}
       </ComposedChart>

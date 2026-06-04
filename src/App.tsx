@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchDefaultConfig, fetchLastUpdated, fetchMeta, fetchSeries } from './api'
 import type { DailyMarket, IpoConfig, Meta } from './types'
 import { buildChartRows, summarize, type ChannelMode } from './lib/stats'
+import { eventsFromConfig } from './lib/events'
 import Controls from './components/Controls'
 import ConfigPanel from './components/ConfigPanel'
 import StatCards from './components/StatCards'
@@ -122,6 +123,9 @@ export default function App() {
     [points, channelMode, channelWidth, channelWindow],
   )
   const summary = useMemo(() => (config ? summarize(points, config['offer price']) : null), [points, config])
+  // Chart milestone lines come straight from the model's flow windows, so they track
+  // whichever config is in play (deployed default, or the user's edits).
+  const events = useMemo(() => eventsFromConfig(config), [config])
 
   const applyConfig = () => { setUseConfig(true); load() }
 
@@ -186,18 +190,18 @@ export default function App() {
           </span>
         </div>
         <div className="h-[360px]">
-          <PriceChannelChart rows={rows} offer={config?.['offer price'] ?? 0} />
+          <PriceChannelChart rows={rows} offer={config?.['offer price'] ?? 0} events={events} />
         </div>
       </section>
 
       <div className="grid lg:grid-cols-2 gap-4">
         <section className="card p-3">
           <h2 className="font-semibold mb-1 px-1">Order-flow pressure <span className="text-xs text-slate-400">(buy ▲ / sell ▼ / net —, $B)</span></h2>
-          <div className="h-[240px]"><PressureChart rows={rows} /></div>
+          <div className="h-[240px]"><PressureChart rows={rows} events={events} /></div>
         </section>
         <section className="card p-3">
           <h2 className="font-semibold mb-1 px-1">Volume <span className="text-xs text-slate-400">({volMetric === 'notional' ? '$B traded' : 'M shares'}, coloured by net flow)</span></h2>
-          <div className="h-[240px]"><VolumeChart rows={rows} metric={volMetric} /></div>
+          <div className="h-[240px]"><VolumeChart rows={rows} metric={volMetric} events={events} /></div>
         </section>
       </div>
 

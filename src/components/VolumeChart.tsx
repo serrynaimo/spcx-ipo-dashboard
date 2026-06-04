@@ -3,7 +3,7 @@ import {
 } from 'recharts'
 import type { ChartRow } from '../lib/stats'
 import { fmt } from '../lib/stats'
-import { EVENTS } from '../lib/events'
+import type { MarketEvent } from '../lib/events'
 
 function TT({ active, payload }: any) {
   if (!active || !payload?.length) return null
@@ -17,7 +17,7 @@ function TT({ active, payload }: any) {
   )
 }
 
-export default function VolumeChart({ rows, metric }: { rows: ChartRow[]; metric: 'notional' | 'shares' }) {
+export default function VolumeChart({ rows, metric, events }: { rows: ChartRow[]; metric: 'notional' | 'shares'; events: MarketEvent[] }) {
   const maxDay = rows.length ? rows[rows.length - 1].tradingDay : 0
   const key = metric === 'notional' ? 'volumeNotional' : 'volumeShares'
   return (
@@ -33,7 +33,7 @@ export default function VolumeChart({ rows, metric }: { rows: ChartRow[]; metric
             <Cell key={r.tradingDay} fill={r.netPressure >= 0 ? '#38bdf8' : '#fb7185'} fillOpacity={0.7} />
           ))}
         </Bar>
-        {EVENTS.filter((e) => e.day <= maxDay).map((e) => (
+        {events.filter((e) => e.day <= maxDay).map((e) => (
           <ReferenceLine key={e.day} x={e.day} stroke="#475569" strokeOpacity={0.5} strokeDasharray="2 4" />
         ))}
       </BarChart>
