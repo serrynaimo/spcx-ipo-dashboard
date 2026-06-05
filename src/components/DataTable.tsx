@@ -3,7 +3,7 @@ import type { ChartRow } from '../lib/stats'
 import { fmt } from '../lib/stats'
 
 export default function DataTable({ rows }: { rows: ChartRow[] }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(true)
   const exportCsv = () => {
     const head = ['tradingDay', 'date', 'calendarDayOffset', 'price', 'buyPressure', 'sellPressure', 'netPressure', 'volumeNotional', 'volumeShares']
     const body = rows.map((r) => head.map((h) => (r as any)[h]).join(','))

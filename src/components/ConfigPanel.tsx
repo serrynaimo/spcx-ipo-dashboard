@@ -21,7 +21,7 @@ interface Props {
 }
 
 export default function ConfigPanel({ config, setConfig, onReset, editable, onApply }: Props) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(true)
   const set = (k: keyof IpoConfig, v: number) => setConfig({ ...config, [k]: v })
   const setWin = (i: number, patch: Partial<FlowWindow>) => {
     const fw = config['flow windows'].map((w, j) => (j === i ? { ...w, ...patch } : w))
