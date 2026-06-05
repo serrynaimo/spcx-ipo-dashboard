@@ -29,7 +29,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [modelUpdated, setModelUpdated] = useState<string | null>(null)
 
-  const [days, setDays] = useState(180)
+  const [days, setDays] = useState(140)
   // The IPO config comes solely from the deployed L4 model — there is no hardcoded
   // default in the app. `config` is null until the model's `the default SpaceX IPO
   // config` export is fetched on mount; `modelDefault` is the pristine fetched copy
